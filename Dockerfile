@@ -29,7 +29,7 @@ WORKDIR /usr/src/app
 COPY ./src/package*.json ./
 
 # Install with clean install for reproducible builds
-RUN npm ci --only=production
+RUN npm install --omit=dev
 
 # Copy source code
 COPY ./src .
@@ -38,7 +38,7 @@ COPY ./src .
 RUN pkg --targets node20-alpine-x64 --output ffmpegapi .
 
 
-FROM jrottenberg/ffmpeg:8-alpine
+FROM ghcr.io/jrottenberg/ffmpeg:8-alpine
 
 # Security labels
 LABEL maintainer="your-email@example.com" \
