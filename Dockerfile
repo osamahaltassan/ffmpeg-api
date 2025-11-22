@@ -3,54 +3,70 @@
 # A Docker image to convert audio and video for web using web API
 #
 #   with
-#     - FFMPEG (built)
-#     - NodeJS
+#     - FFMPEG (latest stable)
+#     - NodeJS (LTS)
 #     - fluent-ffmpeg
 #
 #   For more on Fluent-FFMPEG, see 
 #
 #            https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
 #
-# Original image and FFMPEG API by Paul Visco
-# https://github.com/surebert/docker-ffmpeg-service
-#
 #####################################################################
 
-FROM node:18.14-alpine3.16 as build
+FROM node:20-alpine3.21 AS build
 
+# Install dependencies with no cache to reduce layer size
 RUN apk add --no-cache git
 
-# install pkg
-RUN npm install -g pkg
+# Use maintained pkg fork
+RUN npm install -g @yao-pkg/pkg
 
-ENV PKG_CACHE_PATH /usr/cache
+ENV PKG_CACHE_PATH=/usr/cache
 
 WORKDIR /usr/src/app
 
-# Bundle app source
+# Copy package files first for better layer caching
+COPY ./src/package*.json ./
+
+# Install with clean install for reproducible builds
+RUN npm ci --only=production
+
+# Copy source code
 COPY ./src .
-RUN npm install
 
 # Create single binary file
-RUN pkg --targets node18-alpine-x64 /usr/src/app/package.json
+RUN pkg --targets node20-alpine-x64 --output ffmpegapi .
 
 
-FROM jrottenberg/ffmpeg:4.2-alpine311
+FROM jrottenberg/ffmpeg:8-alpine
 
-# Create user and change workdir
-RUN adduser --disabled-password --home /home/ffmpgapi ffmpgapi
+# Security labels
+LABEL maintainer="your-email@example.com" \
+      description="FFmpeg API service" \
+      version="2.0"
+
+# Create non-root user with specific UID/GID for consistency
+RUN addgroup -g 1000 ffmpgapi && \
+    adduser -D -u 1000 -G ffmpgapi -h /home/ffmpgapi ffmpgapi
+
 WORKDIR /home/ffmpgapi
 
-# Copy files from build stage
-COPY --from=build /usr/src/app/ffmpegapi .
-COPY --from=build /usr/src/app/index.md .
-RUN chown ffmpgapi:ffmpgapi * && chmod 755 ffmpegapi
+# Copy artifacts from build stage
+COPY --from=build --chown=ffmpgapi:ffmpgapi /usr/src/app/ffmpegapi .
+COPY --from=build --chown=ffmpgapi:ffmpgapi /usr/src/app/index.md .
 
+# Make binary executable
+RUN chmod 755 ffmpegapi
+
+# Add health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Expose port
 EXPOSE 3000
 
-# Change user
+# Switch to non-root user
 USER ffmpgapi
 
-ENTRYPOINT []
-CMD [ "./ffmpegapi" ]
-
+# Use exec form for proper signal handling
+CMD ["./ffmpegapi"]
