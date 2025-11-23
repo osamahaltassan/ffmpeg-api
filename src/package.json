@@ -13,7 +13,7 @@
     "compression": "^1.7.4",
     "express": "^4.17.1",
     "express-list-endpoints": "4.0.1",
-    "express-readme": "0.0.5",
+    "express-markdown": "^0.0.6",
     "fluent-ffmpeg": "^2.1.2",
     "fs": "0.0.1-security",
     "glob": "^10.5.0",
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "eslint": "^9.39.1",
-    "eslint-config-google": "^0.14.0"
+    "eslint-config-google": "^0.14.0",
+    "marked": "^14.1.2"
   }
 }

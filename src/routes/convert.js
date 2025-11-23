@@ -59,7 +59,7 @@ function convert(req,res,next) {
         }
         if (format === "wav")
         {
-            ffmpegParams.outputOptions=['-codec:a pcm_s16le -ac 1 -ar 16000' ];
+            ffmpegParams.outputOptions=['-codec:a pcm_s16le' ];
         }
     }
     if (conversion == "video")
