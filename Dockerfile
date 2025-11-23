@@ -16,12 +16,14 @@
 #
 #####################################################################
 
-FROM node:18.14-alpine3.16 as build
+FROM node:20-alpine3.21 as build
 
 RUN apk add --no-cache git
 
+RUN npm install -g npm@11
+
 # install pkg
-RUN npm install -g pkg
+RUN npm install -g pkg@latest
 
 ENV PKG_CACHE_PATH /usr/cache
 

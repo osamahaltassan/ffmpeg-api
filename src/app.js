@@ -38,7 +38,7 @@ app.use('/video/extract', extract);
 var probe = require('./routes/probe.js');
 app.use('/probe', probe);
 
-require('express-readme')(app, {
+require('express-markdown')(app, {
     filename: 'index.md',
     routes: ['/'],
 });
