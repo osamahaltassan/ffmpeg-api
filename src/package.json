@@ -3,22 +3,22 @@
   "version": "1.0.0",
   "description": "API for FFMPEG, media conversion utility",
   "main": "app.js",
-  "bin": {
-    "ffmpegapi": "./app.js"
-  },
+  "bin" : { "ffmpegapi" : "./app.js" },
   "license": "ISC",
   "dependencies": {
-    "busboy": "^1.6.0",
+    "busboy": "~0.3.1",
     "compression": "^1.7.4",
-    "express": "^4.21.0",
-    "fluent-ffmpeg": "^2.1.3",
-    "express-list-endpoints": "^7.1.0",
-    "unique-filename": "^3.0.0",
-    "winston": "^3.17.0",
-    "archiver": "^7.0.0"
+    "express": "^4.17.1",
+    "express-readme": "0.0.5",
+    "fluent-ffmpeg": "^2.1.2",
+    "express-list-endpoints": "4.0.1",
+    "fs": "0.0.1-security",
+    "unique-filename": "^1.1.1",
+    "winston": "^3.2.1",
+    "archiver": "^4.0.1"
   },
   "devDependencies": {
-    "eslint": "^9.0.0",
+    "eslint": "^6.8.0",
     "eslint-config-google": "^0.14.0"
   }
 }

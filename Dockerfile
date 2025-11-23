@@ -3,75 +3,53 @@
 # A Docker image to convert audio and video for web using web API
 #
 #   with
-#     - FFMPEG (latest stable)
-#     - NodeJS (LTS)
+#     - FFMPEG (built)
+#     - NodeJS
 #     - fluent-ffmpeg
 #
 #   For more on Fluent-FFMPEG, see 
 #
-#             https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
+#            https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
+#
+# Original image and FFMPEG API by Paul Visco
+# https://github.com/surebert/docker-ffmpeg-service
 #
 #####################################################################
 
-FROM node:20-alpine3.21 AS build
+FROM node:18.14-alpine3.16 as build
 
-# Install dependencies with no cache to reduce layer size
 RUN apk add --no-cache git
 
-# Use maintained pkg fork
-RUN npm install -g @yao-pkg/pkg
+# install pkg
+RUN npm install -g pkg
 
-ENV PKG_CACHE_PATH=/usr/cache
+ENV PKG_CACHE_PATH /usr/cache
 
 WORKDIR /usr/src/app
 
-# Copy package files first for better layer caching
-COPY ./src/package*.json ./
-
-# Install with clean install for reproducible builds
-RUN npm install --omit=dev
-
-# Copy source code
+# Bundle app source
 COPY ./src .
+RUN npm install
 
 # Create single binary file
-RUN pkg --targets node20-alpine-x64 --output ffmpegapi .
+RUN pkg --targets node18-alpine-x64 /usr/src/app/package.json
 
 
 FROM ghcr.io/jrottenberg/ffmpeg:8-alpine
 
-# Security labels
-LABEL maintainer="your-email@example.com" \
-      description="FFmpeg API service" \
-      version="2.0"
-
-# Create non-root user with specific UID/GID for consistency
-RUN addgroup -g 1000 ffmpgapi && \
-    adduser -D -u 1000 -G ffmpgapi -h /home/ffmpgapi ffmpgapi
-
+# Create user and change workdir
+RUN adduser --disabled-password --home /home/ffmpgapi ffmpgapi
 WORKDIR /home/ffmpgapi
 
-# Copy artifacts from build stage
-COPY --from=build --chown=ffmpgapi:ffmpgapi /usr/src/app/ffmpegapi .
-COPY --from=build --chown=ffmpgapi:ffmpgapi /usr/src/app/index.md .
+# Copy files from build stage
+COPY --from=build /usr/src/app/ffmpegapi .
+COPY --from=build /usr/src/app/index.md .
+RUN chown ffmpgapi:ffmpgapi * && chmod 755 ffmpegapi
 
-# Make binary executable
-RUN chmod 755 ffmpegapi
-
-# Add health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
-
-# Expose port
 EXPOSE 3000
 
-# Switch to non-root user
+# Change user
 USER ffmpgapi
 
-# !!! CRITICAL FIX !!!
-# Reset the ENTRYPOINT from the base image. 
-# Without this, Docker runs: ffmpeg ./ffmpegapi
 ENTRYPOINT []
-
-# Use exec form for proper signal handling
-CMD ["./ffmpegapi"]
+CMD [ "./ffmpegapi" ]
