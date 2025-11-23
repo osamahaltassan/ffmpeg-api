@@ -9,7 +9,7 @@
 #
 #   For more on Fluent-FFMPEG, see 
 #
-#            https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
+#             https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
 #
 #####################################################################
 
@@ -67,6 +67,11 @@ EXPOSE 3000
 
 # Switch to non-root user
 USER ffmpgapi
+
+# !!! CRITICAL FIX !!!
+# Reset the ENTRYPOINT from the base image. 
+# Without this, Docker runs: ffmpeg ./ffmpegapi
+ENTRYPOINT []
 
 # Use exec form for proper signal handling
 CMD ["./ffmpegapi"]

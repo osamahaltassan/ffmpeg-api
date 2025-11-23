@@ -64,7 +64,7 @@ router.use(function (req, res,next) {
                 logger.debug(`file: ${log.file}, encoding: ${log.encoding}, mimetype: ${log.mimetype}, bytes: ${log.bytes}`);
             });
 
-            fileName = filename;
+            fileName = filename || 'upload';  // Provide fallback name
             savedFile = savedFile + "-" + fileName;
             logger.debug(`uploading ${fileName}`)
             let written = file.pipe(fs.createWriteStream(savedFile));

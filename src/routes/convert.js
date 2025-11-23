@@ -81,6 +81,10 @@ function convert(req,res,next) {
     }
 
     let savedFile = res.locals.savedFile;
+    if (!savedFile || savedFile === './ffmpegapi') {
+        logger.error('Invalid saved file path');
+        return res.status(400).json({error: 'File upload failed - invalid path'});
+    }
     let outputFile = savedFile + '-output.' + ffmpegParams.extension;
     logger.debug(`begin conversion from ${savedFile} to ${outputFile}`)
 

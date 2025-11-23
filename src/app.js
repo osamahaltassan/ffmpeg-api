@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const compression = require('compression');
 const all_routes = require('express-list-endpoints');
+const path = require('path'); // Added path module
 
 const logger = require('./utils/logger.js');
 const constants = require('./constants.js');
@@ -39,9 +40,15 @@ var probe = require('./routes/probe.js');
 app.use('/probe', probe);
 
 require('express-readme')(app, {
-    filename: 'index.md',
+    // UPDATED: usage of process.cwd() ensures it looks for index.md
+    // in the container's working directory, not inside the binary snapshot.
+    filename: path.join(process.cwd(), 'index.md'),
     routes: ['/'],
 });
+
+const ffmpeg = require('fluent-ffmpeg');
+logger.info(`FFmpeg path: ${ffmpeg.getAvailableFfmpegPath()}`);
+logger.info(`FFprobe path: ${ffmpeg.getAvailableFfprobePath()}`);
 
 const server = app.listen(constants.serverPort, function() {
     let host = server.address().address;
