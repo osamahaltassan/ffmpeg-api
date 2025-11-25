@@ -1,6 +1,6 @@
 var express = require('express')
 const fs = require('fs');
-const Busboy = require('busboy');
+const busboy = require('busboy');  // Changed: lowercase, no constructor
 const uniqueFilename = require('unique-filename');
 
 var router = express.Router()
@@ -18,17 +18,17 @@ router.use(function (req, res,next) {
         let hitLimit = false;
         let fileName = '';
         var savedFile = uniqueFilename('/tmp/');
-        let busboy = new Busboy({
+        let bb = busboy({  // Changed: lowercase function call, not 'new'
             headers: req.headers,
             limits: {
                 fields: 0, //no non-files allowed
                 files: 1,
                 fileSize: fileSizeLimit,
         }});
-        busboy.on('filesLimit', function() {
+        bb.on('filesLimit', function() {  // Changed: bb instead of busboy
             logger.error(`upload file size limit hit. max file size ${fileSizeLimit} bytes.`)
         });
-        busboy.on('fieldsLimit', function() {
+        bb.on('fieldsLimit', function() {  // Changed: bb instead of busboy
             let msg="Non-file field detected. Only files can be POSTed.";
             logger.error(msg);
             let err = new Error(msg);
@@ -36,7 +36,7 @@ router.use(function (req, res,next) {
             next(err);
         });
 
-        busboy.on('file', function(
+        bb.on('file', function(  // Changed: bb instead of busboy
             fieldname,
             file,
             filename,
@@ -72,7 +72,7 @@ router.use(function (req, res,next) {
                 logger.debug(`${fileName} saved, path: ${savedFile}`)
             }
         });
-        busboy.on('finish', function() {
+        bb.on('finish', function() {  // Changed: bb instead of busboy
             if (hitLimit) {
                 utils.deleteFile(savedFile);
                 return;
@@ -81,7 +81,7 @@ router.use(function (req, res,next) {
             res.locals.savedFile = savedFile;
             next();
         });
-        return req.pipe(busboy);
+        return req.pipe(bb);  // Changed: bb instead of busboy
     }
     next();
 });
