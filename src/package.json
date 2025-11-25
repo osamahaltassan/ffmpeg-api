@@ -1,6 +1,6 @@
 {
   "name": "ffmpegapi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "API for FFMPEG, media conversion utility",
   "main": "app.js",
   "bin": {
@@ -17,7 +17,7 @@
     "fs": "0.0.1-security",
     "glob": "^10.5.0",
     "markdown-it": "^14.1.0",
-    "package.json": "^2.0.1",
+    "package.json": "^0.0.0",
     "unique-filename": "^1.1.1",
     "winston": "^3.2.1"
   },
