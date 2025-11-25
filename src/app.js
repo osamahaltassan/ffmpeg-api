@@ -38,9 +38,11 @@ app.use('/video/extract', extract);
 var probe = require('./routes/probe.js');
 app.use('/probe', probe);
 
-require('express-markdown')(app, {
-    filename: 'index.md',
-    routes: ['/'],
+const MarkdownIt = require('markdown-it');
+const md = new MarkdownIt({
+  html: true,         // allow HTML in source
+  linkify: true,      // auto-convert URL-like text to links
+  typographer: true   // nice quotes, dashes, etc.
 });
 
 const server = app.listen(constants.serverPort, function() {
