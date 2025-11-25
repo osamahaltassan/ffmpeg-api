@@ -25,7 +25,7 @@ RUN npm install -g npm@11
 # install pkg
 RUN npm install -g pkg@latest
 
-ENV PKG_CACHE_PATH /usr/cache
+ENV SOME_VAR=/usr/cache
 
 WORKDIR /usr/src/app
 
