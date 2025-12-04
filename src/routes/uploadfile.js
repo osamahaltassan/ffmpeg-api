@@ -6,6 +6,8 @@ const uniqueFilename = require('unique-filename');
 var router = express.Router()
 const logger = require('../utils/logger.js')
 
+const utils = require('../utils/utils.js');
+
 //route to handle file upload in all POST requests
 //file is saved to res.locals.savedFile and can be used in subsequent routes.
 router.use(function (req, res,next) {
@@ -36,13 +38,12 @@ router.use(function (req, res,next) {
             next(err);
         });
 
-        bb.on('file', function(  // Changed: bb instead of busboy
+        bb.on('file', function(
             fieldname,
             file,
-            filename,
-            encoding,
-            mimetype
+            info
         ) {
+            const { filename, encoding, mimeType: mimetype } = info;
             file.on('limit', function(file) {
                 hitLimit = true;
                 let msg = `${filename} exceeds max size limit. max file size ${fileSizeLimit} bytes.`
