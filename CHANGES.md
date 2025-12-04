@@ -30,6 +30,12 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
         - Modernized all route handlers to async arrow functions
         - Replaced `==` with `===` for strict equality checks
         - Fixed spacing and formatting inconsistencies
+    - **extract.js** (in progress):
+        - Created `extractFromVideo()` helper function that wraps ffmpeg extraction in Promise
+        - Created `finalizeArchive()` helper function that promisifies archive finalization
+        - Modernized route handlers (`/audio`, `/images`, `/download/:filename`) to async arrow functions
+        - Changed `var` → `const` for imports and router
+        - Changed `let` → `const` in download route for immutable variables
     - **Code quality improvements**:
         - Standardized arrow function syntax in route handlers
         - Improved error handling with try/catch blocks

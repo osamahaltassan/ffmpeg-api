@@ -1,36 +1,59 @@
-var express = require('express')
+const express = require('express');
 const fs = require('fs');
 const ffmpeg = require('fluent-ffmpeg');
 const uniqueFilename = require('unique-filename');
-var archiver = require('archiver');
+const archiver = require('archiver');
 
 const constants = require('../constants.js');
 const logger = require('../utils/logger.js');
 const utils = require('../utils/utils.js');
 
-var router = express.Router();
+const router = express.Router();
+
+// Promisify ffmpeg extraction
+function extractFromVideo(inputPath, outputPath, outputOptions) {
+    return new Promise((resolve, reject) => {
+        const command = ffmpeg(inputPath)
+            .renice(constants.defaultFFMPEGProcessPriority)
+            .outputOptions(outputOptions)
+            .on('error', (err) => reject(err))
+            .on('end', () => resolve());
+
+        if (outputPath.includes('%04d')) {
+            command.output(outputPath).run();
+        } else {
+            command.save(outputPath);
+        }
+    });
+}
+
+// Promisify archive finalization
+function finalizeArchive(archive, outputStream) {
+    return new Promise((resolve, reject) => {
+        outputStream.on('close', () => resolve());
+        outputStream.on('error', (err) => reject(err));
+        archive.on('error', (err) => reject(err));
+        archive.finalize();
+    });
+}
 
 
-//routes for /video/extract
-//extracts audio from video
-//extracts images from vide
-router.post('/audio', function (req, res,next) {
-
-    res.locals.extract="audio"
-    return extract(req,res,next);
+// Routes for /video/extract
+// Extract audio or images from video
+router.post('/audio', async (req, res, next) => {
+    res.locals.extract = "audio";
+    return extract(req, res, next);
 });
 
-router.post('/images', function (req, res,next) {
-
-    res.locals.extract="images"
-    return extract(req,res,next);
+router.post('/images', async (req, res, next) => {
+    res.locals.extract = "images";
+    return extract(req, res, next);
 });
 
-router.get('/download/:filename', function (req, res,next) {
-    //download extracted image
-    let filename = req.params.filename;
-    let file = `/tmp/${filename}`
-    return utils.downloadFile(file,null,req,res,next);
+router.get('/download/:filename', async (req, res, next) => {
+    const filename = req.params.filename;
+    const file = `/tmp/${filename}`;
+    return utils.downloadFile(file, null, req, res, next);
 });
 
 // extract audio or images from video
