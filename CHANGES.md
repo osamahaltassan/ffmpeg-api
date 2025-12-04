@@ -15,7 +15,7 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
 
 ### Changed
 
-- **Code modernization - Core utilities and conversion routes**
+- **Code modernization - Core utilities and routes**
     - **Variable declarations**: Replaced `var` with `const`/`let` throughout codebase
     - **Async/await migration**: Converted callback-based code to modern async/await patterns
     - **utils.js**: 
@@ -30,17 +30,23 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
         - Modernized all route handlers to async arrow functions
         - Replaced `==` with `===` for strict equality checks
         - Fixed spacing and formatting inconsistencies
-    - **extract.js** (in progress):
+    - **extract.js**:
         - Created `extractFromVideo()` helper function that wraps ffmpeg extraction in Promise
         - Created `finalizeArchive()` helper function that promisifies archive finalization
+        - Completely refactored main `extract()` function to async/await
+        - Eliminated nested callback hell with flat async/await flow
         - Modernized route handlers (`/audio`, `/images`, `/download/:filename`) to async arrow functions
-        - Changed `var` → `const` for imports and router
-        - Changed `let` → `const` in download route for immutable variables
+        - Replaced traditional for loops with modern `for...of` syntax
+        - Used `.map()` for functional array transformations
+        - Renamed `extract` variable to `extractType` for clarity
+        - Changed all `var` → `const` for imports, router, and immutable variables
+        - Single try/catch block for unified error handling
     - **Code quality improvements**:
         - Standardized arrow function syntax in route handlers
         - Improved error handling with try/catch blocks
         - Added missing semicolons for consistency
         - Removed trailing whitespace and unnecessary blank lines
+        - Replaced C-style for loops with modern iteration patterns
 
 - **Documentation improvements**
     - Converted README from AsciiDoc to Markdown format
@@ -75,9 +81,3 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
 
 - Initial fork from [samisalkosuo/ffmpeg-api](https://github.com/samisalkosuo/ffmpeg-api) 0.3
 - Base Dockerfile updates
-
----
-
-## Pre-Fork History
-
-For changes prior to the fork, see the [upstream repository](https://github.com/samisalkosuo/ffmpeg-api) 0.3

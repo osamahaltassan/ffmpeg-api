@@ -56,170 +56,132 @@ router.get('/download/:filename', async (req, res, next) => {
     return utils.downloadFile(file, null, req, res, next);
 });
 
-// extract audio or images from video
-function extract(req,res,next) {
-    let extract = res.locals.extract;
-    logger.debug(`extract ${extract}`);
+// Extract audio or images from video
+async function extract(req, res, next) {
+    const extractType = res.locals.extract;
+    logger.debug(`extract ${extractType}`);
     
-    let fps = req.query.fps || 1;
-    //compress = zip or gzip
-    let compress = req.query.compress || "none";
-    let ffmpegParams ={};
-    var format = "png";
-    if (extract === "images"){
-        format = "png"
-        ffmpegParams.outputOptions=[
-            `-vf fps=${fps}`
-        ];    
+    const fps = req.query.fps || 1;
+    const compress = req.query.compress || "none";
+    const ffmpegParams = {};
+    let format = "png";
+
+    if (extractType === "images") {
+        format = "png";
+        ffmpegParams.outputOptions = [`-vf fps=${fps}`];
     }
-    if (extract === "audio"){
-        format = "wav"
-        ffmpegParams.outputOptions=[
-            '-vn',
-            `-f ${format}` 
-        ];    
-        let monoAudio = req.query.mono || "yes";
-        if (monoAudio === "yes" || monoAudio === "true")
-        {
-            logger.debug("extracting audio, 1 channel only")
-            ffmpegParams.outputOptions.push('-ac 1')
-        }
-        else{
-            logger.debug("extracting audio, all channels")
+
+    if (extractType === "audio") {
+        format = "wav";
+        ffmpegParams.outputOptions = ['-vn', `-f ${format}`];
+        
+        const monoAudio = req.query.mono || "yes";
+        if (monoAudio === "yes" || monoAudio === "true") {
+            logger.debug("extracting audio, 1 channel only");
+            ffmpegParams.outputOptions.push('-ac 1');
+        } else {
+            logger.debug("extracting audio, all channels");
         }
     }
 
     ffmpegParams.extension = format;
-
-    let savedFile = res.locals.savedFile;
-
-    var outputFile = uniqueFilename('/tmp/') ;
+    const savedFile = res.locals.savedFile;
+    const outputFile = uniqueFilename('/tmp/');
     logger.debug(`outputFile ${outputFile}`);
-    var uniqueFileNamePrefix = outputFile.replace("/tmp/","");
+    const uniqueFileNamePrefix = outputFile.replace("/tmp/", "");
     logger.debug(`uniqueFileNamePrefix ${uniqueFileNamePrefix}`);
 
-    //ffmpeg processing...
-    var ffmpegCommand = ffmpeg(savedFile);
-    ffmpegCommand = ffmpegCommand
-            .renice(constants.defaultFFMPEGProcessPriority)
-            .outputOptions(ffmpegParams.outputOptions)
-            .on('error', function(err) {
-                logger.error(`${err}`);
-                utils.deleteFile(savedFile);
-                res.writeHead(500, {'Connection': 'close'});
-                res.end(JSON.stringify({error: `${err}`}));
-            })
-
-    //extract audio track from video as wav
-    if (extract === "audio"){
-        let wavFile = `${outputFile}.${format}`;
-        ffmpegCommand
-            .on('end', function() {
-                logger.debug(`ffmpeg process ended`);
-
-                utils.deleteFile(savedFile)
-                return utils.downloadFile(wavFile,null,req,res,next);
-            })
-          .save(wavFile);
-        
+    try {
+        // Extract audio track from video as wav
+        if (extractType === "audio") {
+            const wavFile = `${outputFile}.${format}`;
+            await extractFromVideo(savedFile, wavFile, ffmpegParams.outputOptions);
+            logger.debug(`ffmpeg process ended`);
+            utils.deleteFile(savedFile);
+            await utils.downloadFile(wavFile, null, req, res, next);
         }
 
-    //extract png images from video
-    if (extract === "images"){
-        ffmpegCommand
-            .output(`${outputFile}-%04d.png`)
-            .on('end', function() {
-                logger.debug(`ffmpeg process ended`);
+        // Extract png images from video
+        if (extractType === "images") {
+            await extractFromVideo(savedFile, `${outputFile}-%04d.png`, ffmpegParams.outputOptions);
+            logger.debug(`ffmpeg process ended`);
+            utils.deleteFile(savedFile);
 
-                utils.deleteFile(savedFile)
+            // Read extracted files
+            const files = fs.readdirSync('/tmp/').filter(fn => fn.startsWith(uniqueFileNamePrefix));
+            
+            if (compress === "zip" || compress === "gzip") {
+                // Create zip or tar.gz archive of all images
+                let archive = null;
+                let extension = "";
 
-                //read extracted files
-                var files = fs.readdirSync('/tmp/').filter(fn => fn.startsWith(uniqueFileNamePrefix));
+                if (compress === "gzip") {
+                    archive = archiver('tar', {
+                        gzip: true,
+                        zlib: { level: 9 }
+                    });
+                    extension = "tar.gz";
+                } else {
+                    archive = archiver('zip', {
+                        zlib: { level: 9 }
+                    });
+                    extension = "zip";
+                }
+
+                const compressFileName = `${uniqueFileNamePrefix}.${extension}`;
+                const compressFilePath = `/tmp/${compressFileName}`;
+                logger.debug(`starting ${compress} process ${compressFilePath}`);
                 
-                if (compress === "zip" || compress === "gzip")
-                {
-                    //do zip or tar&gzip of all images and download file
-                    var archive = null;
-                    var extension = "";
-                    if (compress === "gzip") {
-                        archive = archiver('tar', {
-                            gzip: true,
-                            zlib: { level: 9 } // Sets the compression level.
-                        });
-                        extension = "tar.gz";
-                    }
-                    else {
-                        archive = archiver('zip', {
-                            zlib: { level: 9 } // Sets the compression level.
-                        });
-                        extension = "zip";
-                    }
-
-                    let compressFileName = `${uniqueFileNamePrefix}.${extension}`
-                    let compressFilePath = `/tmp/${compressFileName}`
-                    logger.debug(`starting ${compress} process ${compressFilePath}`);
-                    var compressFile = fs.createWriteStream(compressFilePath);
-
-                    archive.on('error', function(err) {
-                      return next(err);
-                    });
-                    
-                    // pipe archive data to the output file
-                    archive.pipe(compressFile);
-                    
-                    // add files to archive
-                    for (var i=0; i < files.length; i++) {
-                        var file = `/tmp/${files[i]}`;
-                        archive.file(file, {name: files[i]});
-                    }
-                    
-                    // listen for all archive data to be written
-                    // 'close' event is fired only when a file descriptor is involved
-                    compressFile.on('close', function() {
-                        logger.debug(`${compressFileName}: ${archive.pointer()} total bytes`);
-                        logger.debug('archiver has been finalized and the output file descriptor has closed.');
-
-                        // delete all images
-                        for (var i=0; i < files.length; i++) {
-                            var file = `/tmp/${files[i]}`;
-                            utils.deleteFile(file);
-                        }
-
-                        //return compressed file
-                        return utils.downloadFile(compressFilePath,compressFileName,req,res,next);
-
-                    });
-                    // Wait for streams to complete
-                    archive.finalize();
-
+                const compressFile = fs.createWriteStream(compressFilePath);
+                archive.pipe(compressFile);
+                
+                // Add files to archive
+                for (const file of files) {
+                    const filePath = `/tmp/${file}`;
+                    archive.file(filePath, {name: file});
                 }
-                else
-                {
-                    //return JSON list of extracted images
+                
+                // Wait for archive to finalize
+                await finalizeArchive(archive, compressFile);
+                
+                logger.debug(`${compressFileName}: ${archive.pointer()} total bytes`);
+                logger.debug('archiver has been finalized and the output file descriptor has closed.');
 
-                    logger.debug(`output files in /tmp`);
-                    var responseJson = {};
-                    let externalPort = constants.externalPort || constants.serverPort;
-                    responseJson["totalfiles"] = files.length;
-                    responseJson["description"] = `Extracted image files and URLs to download them. By default, downloading image also deletes the image from server. Note that port ${externalPort} in the URL may not be the same as the real port, especially if server is running on Docker/Kubernetes.`;
-                    var filesArray=[];
-                    for (var i=0; i < files.length; i++) {
-                        var file = files[i];             
-                        logger.debug("file: " + file);
-                        var fileJson={};
-                        fileJson["name"] = file;
-                        fileJson[`url`] = `${req.protocol}://${req.hostname}:${externalPort}${req.baseUrl}/download/${file}`;
-                        filesArray.push(fileJson);                    
-                    }             
-                    responseJson["files"] = filesArray;
-                    res.status(200).send(responseJson);
-
+                // Delete all images
+                for (const file of files) {
+                    const filePath = `/tmp/${file}`;
+                    utils.deleteFile(filePath);
                 }
-            })
-            .run();
 
+                // Return compressed file
+                await utils.downloadFile(compressFilePath, compressFileName, req, res, next);
+            } else {
+                // Return JSON list of extracted images
+                logger.debug(`output files in /tmp`);
+                const externalPort = constants.externalPort || constants.serverPort;
+                const filesArray = files.map(file => {
+                    logger.debug("file: " + file);
+                    return {
+                        name: file,
+                        url: `${req.protocol}://${req.hostname}:${externalPort}${req.baseUrl}/download/${file}`
+                    };
+                });
+
+                const responseJson = {
+                    totalfiles: files.length,
+                    description: `Extracted image files and URLs to download them. By default, downloading image also deletes the image from server. Note that port ${externalPort} in the URL may not be the same as the real port, especially if server is running on Docker/Kubernetes.`,
+                    files: filesArray
+                };
+
+                res.status(200).send(responseJson);
+            }
+        }
+    } catch (err) {
+        logger.error(`${err}`);
+        utils.deleteFile(savedFile);
+        res.writeHead(500, {'Connection': 'close'});
+        res.end(JSON.stringify({error: `${err}`}));
     }
-
 }
 
-module.exports = router
+module.exports = router;
