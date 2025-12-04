@@ -8,6 +8,8 @@ const utils = require('../utils/utils.js');
 
 const router = express.Router();
 
+const constants = require('../constants.js');
+
 // Route to handle file upload in all POST requests
 // File is saved to res.locals.savedFile and can be used in subsequent routes
 router.use((req, res, next) => {
@@ -23,14 +25,18 @@ router.use((req, res, next) => {
         const bb = busboy({
             headers: req.headers,
             limits: {
-                fields: 0, // No non-files allowed
+                fields: 0,
                 files: 1,
-                fileSize: fileSizeLimit,
+                fileSize: fileSizeLimit,  // This relies on global
             }
         });
 
-        bb.on('filesLimit', () => {
-            logger.error(`upload file size limit hit. max file size ${fileSizeLimit} bytes.`);
+        file.on('limit', () => {
+            hitLimit = true;
+            const msg = `${filename} exceeds max size limit. max file size ${constants.fileSizeLimit} bytes.`;
+            logger.error(msg);
+            res.writeHead(500, {'Connection': 'close'});
+            res.end(JSON.stringify({error: msg}));
         });
 
         bb.on('fieldsLimit', () => {

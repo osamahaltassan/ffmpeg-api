@@ -6,8 +6,7 @@ const all_routes = require('express-list-endpoints');
 const logger = require('./utils/logger.js');
 const constants = require('./constants.js');
 
-fileSizeLimit = constants.fileSizeLimit;
-timeout = 3600000;
+const timeout = 3600000;
 
 // catch SIGINT and SIGTERM and exit
 // Using a single function to handle multiple signals
