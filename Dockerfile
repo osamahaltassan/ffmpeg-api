@@ -1,57 +1,15 @@
-#####################################################################
-#
-# A Docker image to convert audio and video for web using web API
-#
-#   with
-#     - FFMPEG (built)
-#     - NodeJS
-#     - fluent-ffmpeg
-#
-#   For more on Fluent-FFMPEG, see 
-#
-#            https://github.com/fluent-ffmpeg/node-fluent-ffmpeg
-#
-# Original image and FFMPEG API by Paul Visco
-# https://github.com/surebert/docker-ffmpeg-service
-#
-#####################################################################
-
-FROM node:20-alpine3.21 AS build
-
-RUN apk add --no-cache git
-
-RUN npm install -g npm@11
-
-# install pkg
-RUN npm install -g pkg@latest
-
-ENV SOME_VAR=/usr/cache
-
-WORKDIR /usr/src/app
-
-# Bundle app source
-COPY ./src .
-RUN npm install
-
-# Create single binary file
-RUN pkg --targets node18-alpine-x64 /usr/src/app/package.json
-
-
 FROM ghcr.io/jrottenberg/ffmpeg:8-alpine
 
-# Create user and change workdir
+RUN apk add --no-cache nodejs npm
+
 RUN adduser --disabled-password --home /home/ffmpgapi ffmpgapi
 WORKDIR /home/ffmpgapi
 
-# Copy files from build stage
-COPY --from=build /usr/src/app/ffmpegapi .
-COPY --from=build /usr/src/app/index.md .
-RUN chown ffmpgapi:ffmpgapi * && chmod 755 ffmpegapi
+COPY ./src ./
+RUN npm ci --omit=dev
 
 EXPOSE 3000
-
-# Change user
 USER ffmpgapi
 
 ENTRYPOINT []
-CMD [ "./ffmpegapi" ]
+CMD ["node", "app.js"]

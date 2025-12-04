@@ -1,6 +1,6 @@
 {
   "name": "ffmpegapi",
-  "version": "1.0.1",
+  "version": "1.2.1",
   "description": "API for FFMPEG, media conversion utility",
   "main": "app.js",
   "bin": {
@@ -14,10 +14,8 @@
     "express": "^4.17.1",
     "express-list-endpoints": "4.0.1",
     "fluent-ffmpeg": "^2.1.2",
-    "fs": "0.0.1-security",
     "glob": "^10.5.0",
     "markdown-it": "^14.1.0",
-    "package.json": "^0.0.0",
     "unique-filename": "^1.1.1",
     "winston": "^3.2.1"
   },
@@ -25,13 +23,5 @@
     "eslint": "^9.39.1",
     "eslint-config-google": "^0.14.0",
     "marked": "^14.1.2"
-  },
-  "pkg": {
-    "assets": [
-      "node_modules/@isaacs/cliui/**/*",
-      "node_modules/wrap-ansi/**/*",
-      "node_modules/color/**/*",
-      "node_modules/color-string/**/*"
-    ]
   }
 }

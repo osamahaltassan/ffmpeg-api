@@ -18,6 +18,19 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
 
 ### Changed
 
+- **Simplified Dockerfile** - Removed `pkg` bundler (unmaintained), now runs Node directly
+    - Eliminated multi-stage build
+    - Faster builds, easier debugging
+    - No functional change to the API
+
+- **Cleaned up package.json**
+    - Removed `pkg` config block
+    - Removed fake dependencies: `fs` (0.0.1-security), `package.json` (0.0.0)
+
+- **Added `package-lock.json`** for reproducible builds
+    - Removed from `.gitignore`
+    - Enables `npm ci` in Docker builds
+
 - **Complete async/await modernization** - Eliminated all callback-based patterns:
 
 | File | Key Changes |
@@ -69,4 +82,3 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
 ### Changed
 
 - Initial fork from [samisalkosuo/ffmpeg-api](https://github.com/samisalkosuo/ffmpeg-api) 0.3
-- Base Dockerfile updates

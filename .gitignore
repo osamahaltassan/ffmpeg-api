@@ -10,7 +10,6 @@ dev.dockerfile
 .ebextensions
 nbproject
 public
-package-lock.json
 input
 
 node-ffmpeg.zip
