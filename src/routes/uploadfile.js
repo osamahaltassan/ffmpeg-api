@@ -5,15 +5,13 @@ const uniqueFilename = require('unique-filename');
 
 const logger = require('../utils/logger.js');
 const utils = require('../utils/utils.js');
+const constants = require('../constants.js');
 
 const router = express.Router();
-
-const constants = require('../constants.js');
 
 // Route to handle file upload in all POST requests
 // File is saved to res.locals.savedFile and can be used in subsequent routes
 router.use((req, res, next) => {
-    
     if (req.method === "POST") {
         logger.debug(`${__filename} path: ${req.path}`);
 
@@ -25,18 +23,14 @@ router.use((req, res, next) => {
         const bb = busboy({
             headers: req.headers,
             limits: {
-                fields: 0,
+                fields: 0, // No non-files allowed
                 files: 1,
-                fileSize: fileSizeLimit,  // This relies on global
+                fileSize: constants.fileSizeLimit,
             }
         });
 
-        file.on('limit', () => {
-            hitLimit = true;
-            const msg = `${filename} exceeds max size limit. max file size ${constants.fileSizeLimit} bytes.`;
-            logger.error(msg);
-            res.writeHead(500, {'Connection': 'close'});
-            res.end(JSON.stringify({error: msg}));
+        bb.on('filesLimit', () => {
+            logger.error(`upload file size limit hit. max file size ${constants.fileSizeLimit} bytes.`);
         });
 
         bb.on('fieldsLimit', () => {
@@ -52,7 +46,7 @@ router.use((req, res, next) => {
 
             file.on('limit', () => {
                 hitLimit = true;
-                const msg = `${filename} exceeds max size limit. max file size ${fileSizeLimit} bytes.`;
+                const msg = `${filename} exceeds max size limit. max file size ${constants.fileSizeLimit} bytes.`;
                 logger.error(msg);
                 res.writeHead(500, {'Connection': 'close'});
                 res.end(JSON.stringify({error: msg}));
