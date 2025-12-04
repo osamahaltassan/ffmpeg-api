@@ -41,6 +41,15 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
         - Renamed `extract` variable to `extractType` for clarity
         - Changed all `var` → `const` for imports, router, and immutable variables
         - Single try/catch block for unified error handling
+    - **uploadfile.js**:
+        - Converted all callbacks to arrow functions
+        - Changed `var router` → `const router`
+        - Changed `var savedFile` → `let savedFile` (reassigned variable)
+        - Changed `let bb` → `const bb` (immutable after creation)
+        - Replaced `==` with `===` for POST method check
+        - Removed unused callback parameters
+        - Improved code readability with consistent formatting
+        - Added missing semicolons
     - **Code quality improvements**:
         - Standardized arrow function syntax in route handlers
         - Improved error handling with try/catch blocks
