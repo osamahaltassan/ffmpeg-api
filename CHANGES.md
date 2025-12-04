@@ -15,9 +15,31 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
 
 ### Changed
 
-- Converted README from AsciiDoc to Markdown format
-- Converted CHANGES from AsciiDoc to Markdown format
-- Enhanced documentation with volume mount guidance for `/tmp` storage
+- **Code modernization - Core utilities and conversion routes**
+    - **Variable declarations**: Replaced `var` with `const`/`let` throughout codebase
+    - **Async/await migration**: Converted callback-based code to modern async/await patterns
+    - **utils.js**: 
+        - Promisified `downloadFile()` to return Promise instead of callback
+        - Standardized function declarations and removed unnecessary else blocks
+    - **probe.js**: 
+        - Converted to async/await using util.promisify for ffprobe
+        - Replaced callback error handling with try/catch blocks
+    - **convert.js**: 
+        - Created `convertFile()` helper function that wraps ffmpeg in Promise
+        - Converted main `convert()` function to async with try/catch error handling
+        - Modernized all route handlers to async arrow functions
+        - Replaced `==` with `===` for strict equality checks
+        - Fixed spacing and formatting inconsistencies
+    - **Code quality improvements**:
+        - Standardized arrow function syntax in route handlers
+        - Improved error handling with try/catch blocks
+        - Added missing semicolons for consistency
+        - Removed trailing whitespace and unnecessary blank lines
+
+- **Documentation improvements**
+    - Converted README from AsciiDoc to Markdown format
+    - Converted CHANGES from AsciiDoc to Markdown format
+    - Enhanced documentation with volume mount guidance for `/tmp` storage
 
 ## [1.1.2] - 2025-11-25
 

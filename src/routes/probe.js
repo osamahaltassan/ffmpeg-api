@@ -1,33 +1,29 @@
-var express = require('express')
+const express = require('express');
 const ffmpeg = require('fluent-ffmpeg');
+const util = require('util');
 
 const logger = require('../utils/logger.js');
 const utils = require('../utils/utils.js');
 
-var router = express.Router();
+const router = express.Router();
 
-//probe input file and return metadata
-router.post('/', function (req, res,next) {
-
-    let savedFile = res.locals.savedFile;
-    logger.debug(`Probing ${savedFile}`);
-    
-    //ffmpeg processing...
-    var ffmpegCommand = ffmpeg(savedFile)
-    
-    ffmpegCommand.ffprobe(function(err, metadata) {
-        if (err)
-        {
-            next(err);            
-        }
-        else
-        {
-            utils.deleteFile(savedFile);        
-            res.status(200).send(metadata);
-        }
-    
-    });
-
+// Promisify ffprobe
+const ffprobeAsync = util.promisify((filepath, callback) => {
+    ffmpeg(filepath).ffprobe(callback);
 });
 
-module.exports = router
+// Probe input file and return metadata
+router.post('/', async (req, res, next) => {
+    try {
+        const savedFile = res.locals.savedFile;
+        logger.debug(`Probing ${savedFile}`);
+        
+        const metadata = await ffprobeAsync(savedFile);
+        utils.deleteFile(savedFile);
+        res.status(200).send(metadata);
+    } catch (err) {
+        next(err);
+    }
+});
+
+module.exports = router;
