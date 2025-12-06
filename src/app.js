@@ -4,23 +4,30 @@ const all_routes = require('express-list-endpoints');
 
 const logger = require('./utils/logger.js');
 const constants = require('./constants.js');
+const requestId = require('./middleware/requestId.js');
 
 const app = express();
 const timeout = 3600000;
 
 // Catch SIGINT and SIGTERM and exit
-// Using a single function to handle multiple signals
 const handle = (signal) => {
     logger.info(`Received ${signal}. Exiting...`);
     process.exit(1);
 };
 
-// SIGINT is typically CTRL-C
 process.on('SIGINT', handle);
-// SIGTERM is sent to terminate process, for example docker stop sends SIGTERM
 process.on('SIGTERM', handle);
 
 app.use(compression());
+
+// Add request ID for log correlation
+app.use(requestId);
+
+// Log incoming requests with request ID
+app.use((req, res, next) => {
+    logger.info(`[${req.requestId}] ${req.method} ${req.path}`);
+    next();
+});
 
 // Routes to handle file upload for all POST methods
 const upload = require('./routes/uploadfile.js');
@@ -37,13 +44,6 @@ app.use('/video/extract', extract);
 // Routes to probe file info
 const probe = require('./routes/probe.js');
 app.use('/probe', probe);
-
-const MarkdownIt = require('markdown-it');
-const md = new MarkdownIt({
-    html: true,         // Allow HTML in source
-    linkify: true,      // Auto-convert URL-like text to links
-    typographer: true   // Nice quotes, dashes, etc.
-});
 
 const server = app.listen(constants.serverPort, () => {
     const host = server.address().address;
@@ -69,7 +69,7 @@ app.use((req, res, next) => {
 // Custom error handler to return text/plain and message only
 app.use((err, req, res, next) => {
     const code = err.statusCode || 500;
-    const message = err.message;
+    logger.error(`[${req.requestId}] ${err.message}`);
     res.writeHead(code, {'content-type': 'text/plain'});
     res.end(`${err.message}\n`);
 });

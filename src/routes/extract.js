@@ -50,8 +50,13 @@ router.post('/images', async (req, res, next) => {
     return extract(req, res, next);
 });
 
+// Path traversal protection: validate filename has no directory components
 router.get('/download/:filename', async (req, res, next) => {
     const filename = req.params.filename;
+    if (filename.includes('/') || filename.includes('..') || filename.includes('\0')) {
+        logger.warn(`[${req.requestId}] Invalid filename requested: ${filename}`);
+        return res.status(400).json({error: 'Invalid filename'});
+    }
     const file = `/tmp/${filename}`;
     return utils.downloadFile(file, null, req, res, next);
 });
@@ -59,7 +64,7 @@ router.get('/download/:filename', async (req, res, next) => {
 // Extract audio or images from video
 async function extract(req, res, next) {
     const extractType = res.locals.extract;
-    logger.debug(`extract ${extractType}`);
+    logger.debug(`[${req.requestId}] extract ${extractType}`);
     
     const fps = req.query.fps || 1;
     const compress = req.query.compress || "none";
@@ -77,35 +82,35 @@ async function extract(req, res, next) {
         
         const monoAudio = req.query.mono || "yes";
         if (monoAudio === "yes" || monoAudio === "true") {
-            logger.debug("extracting audio, 1 channel only");
+            logger.debug(`[${req.requestId}] extracting audio, 1 channel only`);
             ffmpegParams.outputOptions.push('-ac 1');
         } else {
-            logger.debug("extracting audio, all channels");
+            logger.debug(`[${req.requestId}] extracting audio, all channels`);
         }
     }
 
     ffmpegParams.extension = format;
     const savedFile = res.locals.savedFile;
     const outputFile = uniqueFilename('/tmp/');
-    logger.debug(`outputFile ${outputFile}`);
+    logger.debug(`[${req.requestId}] outputFile ${outputFile}`);
     const uniqueFileNamePrefix = outputFile.replace("/tmp/", "");
-    logger.debug(`uniqueFileNamePrefix ${uniqueFileNamePrefix}`);
+    logger.debug(`[${req.requestId}] uniqueFileNamePrefix ${uniqueFileNamePrefix}`);
 
     try {
         // Extract audio track from video as wav
         if (extractType === "audio") {
             const wavFile = `${outputFile}.${format}`;
             await extractFromVideo(savedFile, wavFile, ffmpegParams.outputOptions);
-            logger.debug(`ffmpeg process ended`);
-            utils.deleteFile(savedFile);
+            logger.debug(`[${req.requestId}] ffmpeg process ended`);
+            utils.deleteFile(savedFile, req.requestId);
             await utils.downloadFile(wavFile, null, req, res, next);
         }
 
         // Extract png images from video
         if (extractType === "images") {
             await extractFromVideo(savedFile, `${outputFile}-%04d.png`, ffmpegParams.outputOptions);
-            logger.debug(`ffmpeg process ended`);
-            utils.deleteFile(savedFile);
+            logger.debug(`[${req.requestId}] ffmpeg process ended`);
+            utils.deleteFile(savedFile, req.requestId);
 
             // Read extracted files
             const files = fs.readdirSync('/tmp/').filter(fn => fn.startsWith(uniqueFileNamePrefix));
@@ -130,7 +135,7 @@ async function extract(req, res, next) {
 
                 const compressFileName = `${uniqueFileNamePrefix}.${extension}`;
                 const compressFilePath = `/tmp/${compressFileName}`;
-                logger.debug(`starting ${compress} process ${compressFilePath}`);
+                logger.debug(`[${req.requestId}] starting ${compress} process ${compressFilePath}`);
                 
                 const compressFile = fs.createWriteStream(compressFilePath);
                 archive.pipe(compressFile);
@@ -144,23 +149,23 @@ async function extract(req, res, next) {
                 // Wait for archive to finalize
                 await finalizeArchive(archive, compressFile);
                 
-                logger.debug(`${compressFileName}: ${archive.pointer()} total bytes`);
-                logger.debug('archiver has been finalized and the output file descriptor has closed.');
+                logger.debug(`[${req.requestId}] ${compressFileName}: ${archive.pointer()} total bytes`);
+                logger.debug(`[${req.requestId}] archiver has been finalized and the output file descriptor has closed.`);
 
                 // Delete all images
                 for (const file of files) {
                     const filePath = `/tmp/${file}`;
-                    utils.deleteFile(filePath);
+                    utils.deleteFile(filePath, req.requestId);
                 }
 
                 // Return compressed file
                 await utils.downloadFile(compressFilePath, compressFileName, req, res, next);
             } else {
                 // Return JSON list of extracted images
-                logger.debug(`output files in /tmp`);
+                logger.debug(`[${req.requestId}] output files in /tmp`);
                 const externalPort = constants.externalPort || constants.serverPort;
                 const filesArray = files.map(file => {
-                    logger.debug("file: " + file);
+                    logger.debug(`[${req.requestId}] file: ${file}`);
                     return {
                         name: file,
                         url: `${req.protocol}://${req.hostname}:${externalPort}${req.baseUrl}/download/${file}`
@@ -177,10 +182,9 @@ async function extract(req, res, next) {
             }
         }
     } catch (err) {
-        logger.error(`${err}`);
-        utils.deleteFile(savedFile);
-        res.writeHead(500, {'Connection': 'close'});
-        res.end(JSON.stringify({error: `${err}`}));
+        logger.error(`[${req.requestId}] Extraction error: ${err}`);
+        utils.deleteFile(savedFile, req.requestId);
+        next(err);
     }
 }
 

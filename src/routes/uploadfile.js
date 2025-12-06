@@ -13,7 +13,7 @@ const router = express.Router();
 // File is saved to res.locals.savedFile and can be used in subsequent routes
 router.use((req, res, next) => {
     if (req.method === "POST") {
-        logger.debug(`${__filename} path: ${req.path}`);
+        logger.debug(`[${req.requestId}] ${__filename} path: ${req.path}`);
 
         let bytes = 0;
         let hitLimit = false;
@@ -30,13 +30,21 @@ router.use((req, res, next) => {
         });
 
         bb.on('filesLimit', () => {
-            logger.error(`upload file size limit hit. max file size ${constants.fileSizeLimit} bytes.`);
+            logger.error(`[${req.requestId}] upload file size limit hit. max file size ${constants.fileSizeLimit} bytes.`);
         });
 
         bb.on('fieldsLimit', () => {
             const msg = "Non-file field detected. Only files can be POSTed.";
-            logger.error(msg);
+            logger.error(`[${req.requestId}] ${msg}`);
             const err = new Error(msg);
+            err.statusCode = 400;
+            next(err);
+        });
+
+        // Handle busboy errors (e.g., malformed multipart data, invalid headers)
+        bb.on('error', (err) => {
+            logger.error(`[${req.requestId}] Busboy parsing error: ${err}`);
+            utils.deleteFile(savedFile);
             err.statusCode = 400;
             next(err);
         });
@@ -47,34 +55,28 @@ router.use((req, res, next) => {
             file.on('limit', () => {
                 hitLimit = true;
                 const msg = `${filename} exceeds max size limit. max file size ${constants.fileSizeLimit} bytes.`;
-                logger.error(msg);
+                logger.error(`[${req.requestId}] ${msg}`);
                 res.writeHead(500, {'Connection': 'close'});
                 res.end(JSON.stringify({error: msg}));
             });
 
-            const log = {
-                file: filename,
-                encoding: encoding,
-                mimetype: mimetype,
-            };
-            logger.debug(`file:${log.file}, encoding: ${log.encoding}, mimetype: ${log.mimetype}`);
+            logger.debug(`[${req.requestId}] file: ${filename}, encoding: ${encoding}, mimetype: ${mimetype}`);
 
             file.on('data', (data) => {
                 bytes += data.length;
             });
 
             file.on('end', () => {
-                log.bytes = bytes;
-                logger.debug(`file: ${log.file}, encoding: ${log.encoding}, mimetype: ${log.mimetype}, bytes: ${log.bytes}`);
+                logger.debug(`[${req.requestId}] file: ${filename}, encoding: ${encoding}, mimetype: ${mimetype}, bytes: ${bytes}`);
             });
 
             fileName = filename || 'upload';
             savedFile = savedFile + "-" + fileName;
-            logger.debug(`uploading ${fileName}`);
+            logger.debug(`[${req.requestId}] uploading ${fileName}`);
 
             const written = file.pipe(fs.createWriteStream(savedFile));
             if (written) {
-                logger.debug(`${fileName} saved, path: ${savedFile}`);
+                logger.debug(`[${req.requestId}] ${fileName} saved, path: ${savedFile}`);
             }
         });
 
@@ -83,7 +85,7 @@ router.use((req, res, next) => {
                 utils.deleteFile(savedFile);
                 return;
             }
-            logger.debug(`upload complete. file: ${fileName}`);
+            logger.debug(`[${req.requestId}] upload complete. file: ${fileName}`);
             res.locals.savedFile = savedFile;
             next();
         });

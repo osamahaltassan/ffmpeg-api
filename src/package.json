@@ -1,27 +1,30 @@
 {
   "name": "ffmpegapi",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "API for FFMPEG, media conversion utility",
   "main": "app.js",
   "bin": {
     "ffmpegapi": "./app.js"
   },
   "license": "ISC",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
   "dependencies": {
-    "archiver": "^4.0.1",
+    "archiver": "^7.0.1",
     "busboy": "^1.6.0",
     "compression": "^1.7.4",
     "express": "^4.17.1",
     "express-list-endpoints": "4.0.1",
     "fluent-ffmpeg": "^2.1.2",
-    "glob": "^10.5.0",
     "markdown-it": "^14.1.0",
     "unique-filename": "^1.1.1",
     "winston": "^3.2.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "eslint": "^9.39.1",
-    "eslint-config-google": "^0.14.0",
     "marked": "^14.1.2"
   }
 }

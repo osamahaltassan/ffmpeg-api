@@ -1,6 +1,5 @@
 const express = require('express');
 const ffmpeg = require('fluent-ffmpeg');
-const util = require('util');
 
 const constants = require('../constants.js');
 const logger = require('../utils/logger.js');
@@ -51,7 +50,7 @@ router.post('/image/to/jpg', async (req, res, next) => {
 async function convert(req, res, next) {
     const format = res.locals.format;
     const conversion = res.locals.conversion;
-    logger.debug(`path: ${req.path}, conversion: ${conversion}, format: ${format}`);
+    logger.debug(`[${req.requestId}] path: ${req.path}, conversion: ${conversion}, format: ${format}`);
 
     const ffmpegParams = {
         extension: format
@@ -87,22 +86,21 @@ async function convert(req, res, next) {
 
     const savedFile = res.locals.savedFile;
     if (!savedFile || savedFile === './ffmpegapi') {
-        logger.error('Invalid saved file path');
+        logger.error(`[${req.requestId}] Invalid saved file path`);
         return res.status(400).json({error: 'File upload failed - invalid path'});
     }
 
     const outputFile = savedFile + '-output.' + ffmpegParams.extension;
-    logger.debug(`begin conversion from ${savedFile} to ${outputFile}`);
+    logger.debug(`[${req.requestId}] begin conversion from ${savedFile} to ${outputFile}`);
 
     try {
         await convertFile(savedFile, outputFile, ffmpegParams.outputOptions);
-        utils.deleteFile(savedFile);
+        utils.deleteFile(savedFile, req.requestId);
         await utils.downloadFile(outputFile, null, req, res, next);
     } catch (err) {
-        logger.error(`${err}`);
-        utils.deleteFile(savedFile);
-        res.writeHead(500, {'Connection': 'close'});
-        res.end(JSON.stringify({error: `${err}`}));
+        logger.error(`[${req.requestId}] Conversion error: ${err}`);
+        utils.deleteFile(savedFile, req.requestId);
+        next(err);
     }
 }
 

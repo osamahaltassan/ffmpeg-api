@@ -4,56 +4,34 @@ All notable changes to this project are documented in this file.
 
 This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](https://github.com/samisalkosuo/ffmpeg-api).
 
-## [1.2.1] - 2025-12-05
+## [1.2.2] - 2025-12-05
 
-### Fixed
+### Added
 
-- **Critical: Busboy v1.x API compatibility** - Fixed `[object Object]` filename bug
-    - Updated file event handler: `(fieldname, file, filename, encoding, mimetype)` → `(fieldname, file, info)` with destructuring `const { filename, encoding, mimeType: mimetype } = info`
-- **Critical: Global variable leak in app.js**
-    - `fileSizeLimit` and `timeout` were undeclared globals (missing `const`/`let`/`var`)
-    - Removed redundant `fileSizeLimit` (already exists in constants.js)
-    - Properly scoped `timeout` with `const`
-    - Updated uploadfile.js to import `constants.fileSizeLimit`
+- **Request ID middleware** - Generates unique ID per request for log correlation and debugging, returned in `X-Request-Id` header
+- **ESLint flat config** - Added `eslint.config.js` with Node.js/CommonJS configuration
+- **Lint scripts in package.json** - Added `npm run lint` and `npm run lint:fix` commands
 
 ### Changed
 
-- **Simplified Dockerfile** - Removed `pkg` bundler (unmaintained), now runs Node directly
-    - Eliminated multi-stage build
-    - Faster builds, easier debugging
-    - No functional change to the API
+- **Updated `archiver`** from 4.0.2 → 7.0.1
+- **Modernized ESLint setup** - Replaced deprecated `eslint-config-google` with `@eslint/js` recommended rules
+- **Dockerfile improvements** - Added health check for container orchestration, pinned Node.js to version 20.x for reproducibility
+- **Enhanced logging across all files** - Added request ID prefix to all log messages for full request traceability (uploadfile.js, convert.js, extract.js, probe.js, utils.js)
+- **Updated `utils.deleteFile()` signature** - Added optional `requestId` parameter for log correlation
 
-- **Cleaned up package.json**
-    - Removed `pkg` config block
-    - Removed fake dependencies: `fs` (0.0.1-security), `package.json` (0.0.0)
+### Fixed
 
-- **Added `package-lock.json`** for reproducible builds
-    - Removed from `.gitignore`
-    - Enables `npm ci` in Docker builds
+- **Path traversal vulnerability in extract.js** - Added validation to reject filenames containing `/`, `..`, or null bytes
+- **Missing busboy error handler in uploadfile.js** - Added handler for malformed multipart data and invalid headers
+- **Inconsistent error handling in convert.js and extract.js** - Replaced manual `res.writeHead`/`res.end` with `next(err)` to use Express error handler
 
-- **Complete async/await modernization** - Eliminated all callback-based patterns:
+### Removed
 
-| File | Key Changes |
-|------|-------------|
-| **utils.js** | Promisified `downloadFile()`, removed unnecessary `else` blocks, `var` → `const` |
-| **probe.js** | Created `ffprobeAsync` with `util.promisify`, async route handlers, try/catch error handling |
-| **convert.js** | Created `convertFile()` Promise wrapper, async `convert()` function, `==` → `===`, unified try/catch |
-| **extract.js** | Created `extractFromVideo()` and `finalizeArchive()` helpers, eliminated callback hell, `for` → `for...of`, renamed `extract` → `extractType` |
-| **uploadfile.js** | Arrow functions throughout, `var router` → `const router`, `var savedFile` → `let savedFile`, `==` → `===`, imports constants module |
-| **app.js** | Arrow functions, `var` → `const` for imports, template literals, removed dead code, fixed spacing |
-
-- **Code quality improvements across all files:**
-    - Variable declarations: `var` → `const`/`let` (100+ occurrences)
-    - Functions: Traditional `function()` → arrow functions `() =>`
-    - Equality: `==` → `===` for strict checks
-    - Strings: Concatenation → template literals
-    - Error handling: Callbacks → try/catch blocks
-    - Iteration: C-style `for` loops → `for...of` and `.map()`
-    - Formatting: Added semicolons, fixed spacing, removed trailing whitespace
-
-- **Documentation improvements:**
-    - Converted README and CHANGES from AsciiDoc to Markdown
-    - Added volume mount guidance for `/tmp` storage
+- **Unused `util` import in convert.js**
+- **Unused `glob` dependency** - Was not used anywhere in codebase
+- **Unused `label` import in logger.js** - Removed from winston format destructuring
+- **Redundant `log` object in uploadfile.js** - Replaced with direct logging
 
 ## [1.1.2] - 2025-11-25
 
@@ -82,3 +60,4 @@ This changelog documents changes since forking from [samisalkosuo/ffmpeg-api](ht
 ### Changed
 
 - Initial fork from [samisalkosuo/ffmpeg-api](https://github.com/samisalkosuo/ffmpeg-api) 0.3
+- Base Dockerfile updates
