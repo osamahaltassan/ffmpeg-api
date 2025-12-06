@@ -31,7 +31,7 @@ Based on:
 
 ```bash
 # Run the container
-docker run -d --name ffmpeg-api -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.1
+docker run -d --name ffmpeg-api -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.2
 
 # Convert a file
 curl -F "file=@input.wav" http://localhost:3000/convert/audio/to/mp3 > output.mp3
@@ -75,10 +75,10 @@ curl -F "file=@input.wav" http://localhost:3000/convert/audio/to/mp3 > output.mp
 
 ```bash
 # Foreground (interactive)
-docker run -it --rm --name ffmpeg-api -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.1
+docker run -it --rm --name ffmpeg-api -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.2
 
 # Background (detached)
-docker run -d --name ffmpeg-api -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.1
+docker run -d --name ffmpeg-api -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.2
 ```
 
 ### Building From Source
@@ -109,7 +109,7 @@ The container uses `/tmp` for processing files. For large media files, mount a h
 docker run -d --name ffmpeg-api \
   -p 3000:3000 \
   -v /path/to/large/storage:/tmp \
-  ghcr.io/osamahaltassan/ffmpeg-api:1.1
+  ghcr.io/osamahaltassan/ffmpeg-api:1.2
 ```
 
 > **Tip:** Ensure the mounted directory has enough space for both the uploaded file and the converted output (2x the file size as a safe estimate).
@@ -124,7 +124,7 @@ chown -R 1000:1000 /path/to/large/storage
 
 To verify the container's UID/GID:
 ```bash
-docker run --rm ghcr.io/osamahaltassan/ffmpeg-api:1.1 id
+docker run --rm ghcr.io/osamahaltassan/ffmpeg-api:1.2 id
 ```
 
 > **Warning:** Avoid `chmod 777` on mounted directories — it exposes files to all processes on the host. Matching UID/GID is the secure approach.
@@ -136,7 +136,7 @@ version: '3.8'
 
 services:
   ffmpeg-api:
-    image: ghcr.io/osamahaltassan/ffmpeg-api:1.1
+    image: ghcr.io/osamahaltassan/ffmpeg-api:1.2
     container_name: ffmpeg-api
     restart: unless-stopped
     ports:
@@ -259,5 +259,5 @@ For large files that take long to process:
 Enable debug logging to see detailed processing information:
 
 ```bash
-docker run -e LOG_LEVEL=debug -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.1
+docker run -e LOG_LEVEL=debug -p 3000:3000 ghcr.io/osamahaltassan/ffmpeg-api:1.2
 ```
