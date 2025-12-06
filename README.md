@@ -114,6 +114,21 @@ docker run -d --name ffmpeg-api \
 
 > **Tip:** Ensure the mounted directory has enough space for both the uploaded file and the converted output (2x the file size as a safe estimate).
 
+#### File Permissions
+
+The container runs as user `ffmpgapi` (UID 1000, GID 1000). When mounting a host directory, ensure proper ownership:
+```bash
+# Set ownership to match container user
+chown -R 1000:1000 /path/to/large/storage
+```
+
+To verify the container's UID/GID:
+```bash
+docker run --rm ghcr.io/osamahaltassan/ffmpeg-api:1.1 id
+```
+
+> **Warning:** Avoid `chmod 777` on mounted directories — it exposes files to all processes on the host. Matching UID/GID is the secure approach.
+
 ### Docker Compose Example
 
 ```yaml
